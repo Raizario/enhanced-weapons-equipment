@@ -1,0 +1,41 @@
+{
+  "id": "enhanced-weapons-equipment",
+  "title": "Enhanced Weapons, Equipment & Rules",
+  "description": "Adds the Enhanced Weapons, Equipment & Rules homebrew weapon properties, Lacerate automation, enhanced item bonus damage, and spellcasting foci to the dnd5e system.",
+  "version": "0.1.0",
+  "manifest": "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/module.json",
+  "download": "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/download/v0.1.0/enhanced-weapons-equipment.zip",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "3.0.0"
+        }
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "styles": [],
+  "packs": [],
+  "flags": {},
+  "authors": [
+    {
+      "name": "TBD"
+    }
+  ]
+}
