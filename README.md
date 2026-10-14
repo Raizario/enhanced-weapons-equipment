@@ -28,3 +28,20 @@ Target: Foundry VTT 14 and dnd5e system 6.x. **This build has not yet been live-
 - Existing item descriptions won't be backfilled automatically. Backfill via API method above or by editing each item.
 - Combat automation, Activities, Masteries, and a complete drag-and-drop compendium are NOT included in this test build.
 - The original module's compendium-data.js predates dnd5e 6 and the newer PDF; do not use it as a reliable v1.7.1 inventory yet.
+
+## v0.1.5 — description cleanup and mastery preview
+
+- Deduplicates earlier v0.1.4 Weapon Properties sections when an item's description is updated, retaining non-generated prose.
+- Rebuilds the property section with identifiable `data-ewe-generated` markup instead of relying solely on HTML comments.
+- Adds Weapon Mastery (No by default / Yes), Mastery I and II dropdowns, Lacerate mastery die fields, and an active-mastery selector to weapon Details.
+- The active mastery can be changed manually for testing. **No bonus-action Activity or chat announcement is created yet.**
+- For Combination weapons, the active-mastery selector represents the currently selected primary/secondary profile. Profile damage and property switching remain future work.
+- Existing weapon descriptions are fixed on their next update; optional console API: `game.modules.get('enhanced-weapons-equipment').api.refreshDescriptions(game.items)` (back up your world first).
+- Automation for on-hit effects and Lacerate remains disabled pending confirmed-hit testing.
+
+### Publishing
+
+1. Upload the **contents** of the GitHub/source ZIP to the root of the repository, overwriting matching files under `scripts/` and updating `module.json`.
+2. Create a release with Git tag `v0.1.5`.
+3. Upload the install ZIP and name its release asset **exactly** `enhanced-weapons-equipment.zip`.
+4. The manifest `download` URL uses that exact tag and asset filename. Update through The Forge in a backed-up test world.
