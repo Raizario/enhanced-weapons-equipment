@@ -36,17 +36,43 @@ export const PROPERTY_RULES = {
  swift:"When you miss, gain advantage on your next attack with the same weapon against the same target.",
  trip:"Replace one attack from the Attack action with a tripping attack against a target at most one size larger within reach. Contest your attack roll against its Athletics or Acrobatics. On success, deal normal weapon damage and knock it prone. Its check has advantage if larger than you, disadvantage if smaller.",
  unwieldy:"After your first attack with this weapon on your turn, further attacks with it before your next turn have disadvantage. Ignore this property with Strength 24 or higher.",
- farshot:"Increase both normal and long ranges by 50%, rounding down to the nearest 5 feet."
+ farshot:"Increase both normal and long ranges by 50%, rounding up to the nearest 5 feet."
 };
+import { masteryState, labelMastery } from './mastery.js';
+
+// Data attributes survive normal HTML editing unlike comment nodes.
 const START = '<!-- ewe-properties:start -->';
 const END = '<!-- ewe-properties:end -->';
 const escapeText = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const values = {lacerate:'lacerateDie',flexible:'flexibleDamage',momentum:'momentumDamage',loud:'loudFeet',combination:'combinationSpeed'};
-function listProperties(properties) { return properties instanceof Set ? [...properties] : Array.isArray(properties) ? properties : []; }
-function originalOnly(html) {
- const begin = html.indexOf(START), end = html.indexOf(END);
- if (begin < 0 || end < begin) return html;
- return (html.slice(0,begin) + html.slice(end + END.length)).trimEnd();
+function listProperties(properties) { return properties instanceof Set ? [...properties] : Array.isArray(properties) ? properties : Object.keys(properties ?? {}).filter(p => properties[p]); }
+
+/** Remove marked, unmarked, and duplicate v0.1.4-generated property sections.
+ * Only remove heading+list pairs when their list item labels match known homebrew properties.
+ * Never remove an unrelated section or a user's surrounding prose.
+ */
+export function stripGeneratedSections(html) {
+ let value = String(html ?? '');
+ value = value.replace(/<!--\s*ewe-properties:start\s*-->[\s\S]*?<!--\s*ewe-properties:end\s*-->/gi, '');
+ const root = document.createElement('div');
+ root.innerHTML = value;
+ root.querySelectorAll('[data-ewe-generated="properties"], section.ewe-generated-properties').forEach(node => node.remove());
+ const known = new Set(Object.keys(PROPERTY_RULES).map(k => k.toLowerCase()));
+ for (const heading of [...root.querySelectorAll('h2,h3,h4,h5,h6,p')]) {
+   if (heading.textContent?.trim() !== 'Weapon Properties') continue;
+   const next = heading.nextElementSibling;
+   if (!next || !['UL','OL'].includes(next.tagName)) continue;
+   const lines = [...next.children];
+   const looksGenerated = lines.length > 0 && lines.every(li => {
+     const leading = li.querySelector('strong,b')?.textContent?.trim() ?? '';
+     const key = leading.replace(/\s*\([^)]*\)/g,'').replace(/[.:]$/,'').trim().toLowerCase();
+     return known.has(key);
+   });
+   if (looksGenerated) { next.remove(); heading.remove(); }
+ }
+ // Remove only obsolete markers, not arbitrary user comments.
+ value = root.innerHTML.replace(/<!--\s*ewe-properties:(?:start|end)\s*-->/gi,'');
+ return value.trim();
 }
 function decorate(base, properties, flags) {
  const rows = listProperties(properties).filter(p => p in PROPERTY_RULES).sort().map(p => {
@@ -57,7 +83,24 @@ function decorate(base, properties, flags) {
   const title = game.i18n.localize(`EWE.Property.${p}`);
   return `<li><strong>${escapeText(title)}${value ? ` (${escapeText(value)})` : ''}.</strong> ${escapeText(PROPERTY_RULES[p])}</li>`;
  });
- return rows.length ? `${base}\n${START}<section class="ewe-generated-properties"><h3>Weapon Properties</h3><ul>${rows.join('')}</ul></section>${END}` : base;
+ const mastery = masteryState(flags);
+ let masteryHtml = '';
+ if (mastery.enabled) {
+  const one = labelMastery(mastery.first,mastery.firstDie);
+  const two = labelMastery(mastery.second,mastery.secondDie);
+  const active = mastery.active === 'first' ? one : two;
+  const combo = listProperties(properties).includes('combination');
+  const explanation = combo
+   ? 'Combination weapons use the Mastery Property assigned to their current profile. Switching profiles changes the active Mastery Property; it cannot be changed independently.'
+   : 'Choose one Mastery Property when you draw or equip the weapon. You can use a Bonus Action to change to the other Mastery Property.';
+  masteryHtml = `<h3>Weapon Mastery</h3><p><strong>Mastery I:</strong> ${escapeText(one)}. <strong>Mastery II:</strong> ${escapeText(two)}.</p><p><strong>Currently active:</strong> ${escapeText(active)}. ${escapeText(explanation)}</p>`;
+  const key = mastery.active === 'first' ? mastery.first : mastery.second;
+  if (key && PROPERTY_RULES[key]) masteryHtml += `<p><strong>${escapeText(active)}:</strong> ${escapeText(PROPERTY_RULES[key])}</p>`;
+ }
+ if (!rows.length && !masteryHtml) return base;
+ const propertyHtml = rows.length ? `<h3>Weapon Properties</h3><ul>${rows.join('')}</ul>` : '';
+ // One consistently identifiable wrapper; regenerated on each meaningful item edit.
+ return `${base}${base ? '\n' : ''}<section class="ewe-generated-properties" data-ewe-generated="properties">${propertyHtml}${masteryHtml}</section>`;
 }
 export function registerPropertyDescriptions() {
  Hooks.on('preUpdateItem', (item, change) => {
@@ -66,12 +109,12 @@ export function registerPropertyDescriptions() {
   const updatedProperties = g(change,'system.properties');
   const updatedDescription = g(change,'system.description.value');
   const incomingFlags = g(change,`flags.${MODULE_ID}`);
-  if (updatedProperties === undefined && updatedDescription === undefined && !incomingFlags) return;
+  if (updatedProperties === undefined && updatedDescription === undefined && incomingFlags === undefined) return;
   const allFlags = foundry.utils.mergeObject(foundry.utils.deepClone(item.flags?.[MODULE_ID] ?? {}), incomingFlags ?? {}, {inplace:false});
-  const source = originalOnly(String(updatedDescription ?? item.system.description?.value ?? ''));
-  foundry.utils.setProperty(change,'system.description.value',decorate(source,updatedProperties ?? item.system.properties, allFlags));
+  const source = stripGeneratedSections(updatedDescription ?? item.system.description?.value ?? '');
+  const result = decorate(source, updatedProperties ?? item.system.properties, allFlags);
+  if (result !== (updatedDescription ?? item.system.description?.value ?? '')) foundry.utils.setProperty(change,'system.description.value',result);
  });
- // Existing weapons get refreshed only when edited. Use this from console to backfill:
  game.modules.get(MODULE_ID).api ??= {};
  game.modules.get(MODULE_ID).api.refreshDescriptions = async (items) => {
   for (const item of items) if (item.type === 'weapon') await item.update({'system.description.value':item.system.description?.value ?? ''});

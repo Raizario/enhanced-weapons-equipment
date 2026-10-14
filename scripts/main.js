@@ -19,6 +19,7 @@ import { CONDITIONS, ALWAYS_TRUE } from "./damage-properties.js";
 import { applyLacerate, onCombatTurnStart } from "./lacerate.js";
 import { registerSettings, playLoudSound } from "./settings.js";
 import { registerSheetInjection } from "./sheet-config.js";
+import { registerMasteryRuntime } from "./mastery-runtime.js";
 import { registerPropertyDescriptions } from "./property-descriptions.js";
 import { buildCompendiumIfNeeded, registerCompendiumSetting } from "./build-compendium.js";
 
@@ -130,6 +131,7 @@ Hooks.once("init", () => {
   registerSettings();
   registerCompendiumSetting();
   registerSheetInjection();
+  registerMasteryRuntime();
   registerPropertyDescriptions();
 });
 

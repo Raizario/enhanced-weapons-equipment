@@ -43,5 +43,10 @@
   "EWE.Property.trip": "Trip",
   "EWE.Property.twoHanded": "Two-Handed",
   "EWE.Property.unwieldy": "Unwieldy",
-  "EWE.Property.versatile": "Versatile"
+  "EWE.Property.versatile": "Versatile",
+  "EWE": {
+    "Property": {
+      "farshot": "Farshot"
+    }
+  }
 }

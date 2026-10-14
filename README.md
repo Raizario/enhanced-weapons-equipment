@@ -1,47 +1,14 @@
-# Enhanced Weapons, Equipment & Rules — v0.1.4 test build
+# Enhanced Weapons, Equipment & Rules — v0.1.6 test build
 
-Target: Foundry VTT 14 and dnd5e system 6.x. **This build has not yet been live-tested in Foundry.**
+- Adds a **Switch Mastery/Profile** button to weapon details, changing the active mastery, adding/removing its property on the weapon, and announcing the switch in actor chat.
+- Adds Farshot effective range multiplication (x1.5, ceil to nearest five) when it is the active mastery, restoring saved base ranges when inactive.
+- Fixes Farshot English localization and updates its description to round up.
+- Preserves the v0.1.5 generated-description cleanup and options.
 
-## Changes
-- Includes scripts/ and lang/ at the paths declared in module.json.
-- Keeps custom weapon properties registered on the native dnd5e sheet.
-- Adds a managed Weapon Properties section to item descriptions when a weapon property is toggled or an item description is edited. Leaves text outside the managed markers alone.
-- Editable Lacerate starting die, Flexible/Momentum damage, Loud radius, and Combination speed fields on weapon item sheets. Saves using Item flags on change.
-- Removes the Lacerate Magical Bonus sheet field. The eventual bleed mechanic must not receive magical bonuses.
-- Disables legacy rollDamageV2 and combat-turn Lacerate automation because it was unsafe and unverified on dnd5e 6.
-- Suspends legacy compendium auto-build pending a dnd5e 6 schema conversion and requested category folders.
-
-## Install & test
-1. **Back up the world.** Do not test this on a live campaign first.
-2. Push this package's `module.json`, `scripts/`, and `lang/` to your GitHub repository's `main` branch.
-3. Create GitHub release `0.1.4` and attach `enhanced-weapons-equipment.zip` (the zip contents should begin with `module.json`, `scripts/`, `lang/`, NOT a parent folder).
-4. Install/update the module in Forge from the manifest URL in `module.json` (or use your normal custom module path). Restart and enable it in your world.
-5. Create a fresh test weapon. Check a custom property, close and reopen the sheet, and inspect the Description tab.
-6. Set Lacerate starting die and confirm both the setting and description update.
-7. Disable a checked property; confirm its generated entry disappears and all your manually authored text stays intact.
-8. If you have old weapons, open Foundry Console and run:
-   `await game.modules.get('enhanced-weapons-equipment').api.refreshDescriptions(game.items.contents);`
-   **Only run after a backup**. Embedded actor weapons: pass `actor.items.contents` instead.
-
-## Known limitations
-- The V14 dnd5e 6 item sheet's DOM markup and hook name are not verified in a live Forge world. If the value fields do not appear, inspect the console and provide a screenshot; description generation is independent of sheet injection.
-- Existing item descriptions won't be backfilled automatically. Backfill via API method above or by editing each item.
-- Combat automation, Activities, Masteries, and a complete drag-and-drop compendium are NOT included in this test build.
-- The original module's compendium-data.js predates dnd5e 6 and the newer PDF; do not use it as a reliable v1.7.1 inventory yet.
-
-## v0.1.5 — description cleanup and mastery preview
-
-- Deduplicates earlier v0.1.4 Weapon Properties sections when an item's description is updated, retaining non-generated prose.
-- Rebuilds the property section with identifiable `data-ewe-generated` markup instead of relying solely on HTML comments.
-- Adds Weapon Mastery (No by default / Yes), Mastery I and II dropdowns, Lacerate mastery die fields, and an active-mastery selector to weapon Details.
-- The active mastery can be changed manually for testing. **No bonus-action Activity or chat announcement is created yet.**
-- For Combination weapons, the active-mastery selector represents the currently selected primary/secondary profile. Profile damage and property switching remain future work.
-- Existing weapon descriptions are fixed on their next update; optional console API: `game.modules.get('enhanced-weapons-equipment').api.refreshDescriptions(game.items)` (back up your world first).
-- Automation for on-hit effects and Lacerate remains disabled pending confirmed-hit testing.
-
-### Publishing
-
-1. Upload the **contents** of the GitHub/source ZIP to the root of the repository, overwriting matching files under `scripts/` and updating `module.json`.
-2. Create a release with Git tag `v0.1.5`.
-3. Upload the install ZIP and name its release asset **exactly** `enhanced-weapons-equipment.zip`.
-4. The manifest `download` URL uses that exact tag and asset filename. Update through The Forge in a backed-up test world.
+## Important test limitations
+- This is **not** a full mastery automation release: property-specific Active Effects (e.g., Defensive AC) and dynamic combat Activities are **not implemented** in this build. Existing attack Activities inherit the updated weapon range where the Activity does not override range.
+- New effect and Activity generation is intentionally deferred: do not rely on it yet in live combat.
+- Setting a mastery via controls refreshes the effective property via update hooks. The button announces manual stance changes; no automatic timing enforcement is applied.
+- Do not independently edit homebrew property toggles **after** activating a mastery until baseline preservation is improved. Test on duplicate items / backup worlds.
+- Combination switching uses the selected speed for the chat label; it does not enforce action economy or physically change weapon profiles/damage dice.
+- No V14 live-runtime test was possible. Test on a backed-up world.
