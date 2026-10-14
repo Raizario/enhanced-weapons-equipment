@@ -1,14 +1,20 @@
-# Enhanced Weapons, Equipment & Rules — v0.1.10 experimental
+# Enhanced Weapons, Equipment & Rules — v0.1.10.1 test build
 
-**Requirements:** Foundry V14 + dnd5e V6. Test in a backup world.
+Target: Foundry VTT v14, dnd5e 6.x. This patch builds on v0.1.10.
 
-- Combination weapon selector with Primary/Secondary profile editor.
-- Each profile has removable multi-select property chips, damage dice or custom formula, and damage type.
-- Weapon Mastery selector: No, Yes (independent), or Combination (bound to profile).
-- Combination profile switching attempts to update dnd5e V6 native base damage and properties, preserving unrelated Activities and settings.
-- Momentum and Flexible now generate Attack Activities (instead of Utility prompts) using separate configurable damage. These are **experimental** and should be verified for correct attack modifier, damage, and action economy in the live system.
-- Existing combat initiative tracking and equip-aware AC logic preserved without code changes.
+## Changes
+- New distinct Combination profile Attack Activities (`Primary: Attack` and `Secondary: Attack`, using the editable profile names), with individually configured damage dice, bonus, type, or custom damage formula.
+- Profile-prefixed maneuver utility Activities (`Primary: Trip — Special Attack`, etc.).
+- Flexible and Momentum are now generated as Attack Activities, including their own configured damage. When a property belongs to a Combination profile, its Activity receives that profile's name.
+- Existing custom Activities are not owned by the module and are not removed.
+- The editor attempts to preserve the current Details-tab scroll position after changing module fields.
+- Initiative history and Defensive/Parry AC automation are left unchanged.
 
-**Migration:** Existing Combination weapons need their primary and secondary profile information entered in the new editor. This version cannot infer distinct historical damage and property configurations from older weapons, and it does not retroactively recover previously erased properties.
+## Test caveats
+- The generated attacks' schema and custom damage formulas require validation in a live Foundry v14 / dnd5e 6.x world. Inactive Combination profile attacks remain selectable; use the correct one manually.
+- Profile-specific attack mode and range still need their own configuration and activity settings.
+- Rebuilt generated Activities may discard manual edits to those module-owned activities. Do not customize generated Activities directly.
+- Back up your world and test on duplicate weapons before using it in a campaign.
 
-**Known limitations:** The Combination profile editor changes base damage and active properties; it does not yet handle profile-specific ranges, attack types, or special rules beyond properties. The dedicated native attack activities for Momentum and Flexible need live validation. No Midi-QOL requirement.
+## Install
+Upload the extracted GitHub source to main. Create release `v0.1.10.1` and attach the module archive as `enhanced-weapons-equipment.zip`. Refresh the Forge's manifest and restart the world.

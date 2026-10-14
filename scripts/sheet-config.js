@@ -30,6 +30,17 @@ function applyThreeColumnPropertyLayout(root) {
  group.classList.add('ewe-three-column-properties');
 }
 
+const rememberedScroll = new Map();
+function keepScroll(sheet,root){
+ const candidates=[...root.querySelectorAll('*')].filter(el=>el.scrollTop>0);
+ const element=candidates.sort((a,b)=>b.scrollTop-a.scrollTop)[0];
+ if(element)rememberedScroll.set(sheet.id,{top:element.scrollTop,index:[...root.querySelectorAll('*')].indexOf(element),time:Date.now()});
+}
+function restoreScroll(sheet,root){
+ const saved=rememberedScroll.get(sheet.id);if(!saved||Date.now()-saved.time>8000)return;
+ const target=[...root.querySelectorAll('*')][saved.index];
+ if(target){target.scrollTop=saved.top;requestAnimationFrame(()=>{target.scrollTop=saved.top;});}
+}
 export function registerSheetInjection() {
  const render = (sheet, html) => {
   const item = sheet.item ?? sheet.document;
@@ -37,6 +48,7 @@ export function registerSheetInjection() {
   const root = html instanceof HTMLElement ? html : html?.[0];
   if (!root) return;
   applyThreeColumnPropertyLayout(root);
+  restoreScroll(sheet,root);
   if (root.querySelector('.ewe-config')) return;
   const escapeAttr=v=>String(v??'').replaceAll('&','&amp;').replaceAll('\"','&quot;').replaceAll('<','&lt;');
   const props = item.system.properties;
@@ -119,27 +131,27 @@ export function registerSheetInjection() {
   const saveProfile=async(which,field,value)=>{
      const next=structuredClone(profiles[which]);
      if(field.startsWith('damage.'))next.damage[field.slice(7)]=value;else next[field]=value;
-     await item.setFlag(MODULE_ID,which==='first'?'profilePrimary':'profileSecondary',next);sheet.render();
+     keepScroll(sheet,root);await item.setFlag(MODULE_ID,which==='first'?'profilePrimary':'profileSecondary',next);sheet.render();
   };
   fieldset.addEventListener('click',async event=>{
     const btn=event.target.closest('[data-ewe-remove]');if(!btn)return;
     const [which,key]=btn.dataset.eweRemove.split(':');const next=structuredClone(profiles[which]);next.properties=next.properties.filter(x=>x!==key);
-    await item.setFlag(MODULE_ID,which==='first'?'profilePrimary':'profileSecondary',next);sheet.render();
+    keepScroll(sheet,root);await item.setFlag(MODULE_ID,which==='first'?'profilePrimary':'profileSecondary',next);sheet.render();
   });
   fieldset.addEventListener('change',async event=>{
     const add=event.target.closest('[data-ewe-add]');
-    if(add&&add.value){const which=add.dataset.eweAdd;const next=structuredClone(profiles[which]);next.properties=[...new Set([...next.properties,add.value])];await item.setFlag(MODULE_ID,which==='first'?'profilePrimary':'profileSecondary',next);sheet.render();return;}
+    if(add&&add.value){const which=add.dataset.eweAdd;const next=structuredClone(profiles[which]);next.properties=[...new Set([...next.properties,add.value])];keepScroll(sheet,root);await item.setFlag(MODULE_ID,which==='first'?'profilePrimary':'profileSecondary',next);sheet.render();return;}
     const attack=event.target.closest('[data-ewe-attack]');
     if(attack){const [type,key]=attack.dataset.eweAttack.split(':');const defaults={formulaMode:false,number:type==='momentum'?2:1,die:type==='momentum'?'d6':'d4',bonus:'',formula:'',type:type==='flexible'?'bludgeoning':'slashing'};
       const updated={...defaults,...(item.getFlag(MODULE_ID,`${type}Attack`)??{})};updated[key]=attack.type==='checkbox'?attack.checked:attack.type==='number'?Number(attack.value):attack.value;
-      await item.setFlag(MODULE_ID,`${type}Attack`,updated);sheet.render();return;}
+      keepScroll(sheet,root);await item.setFlag(MODULE_ID,`${type}Attack`,updated);sheet.render();return;}
     const control=event.target.closest('[data-ewe-profile]');if(!control)return;
     const [which,...parts]=control.dataset.eweProfile.split(':');const field=parts.join(':');
     const val=control.type==='checkbox'?control.checked:control.type==='number'?Number(control.value):control.value;
     await saveProfile(which,field,val);
   });
   fieldset.querySelector('.ewe-switch-mastery')?.addEventListener('click', async () => {
-   try { await synchronizeMastery(item,{announce:true,next:state.active === 'first' ? 'second' : 'first'}); sheet.render(); }
+   try { keepScroll(sheet,root);await synchronizeMastery(item,{announce:true,next:state.active === 'first' ? 'second' : 'first'}); sheet.render(); }
    catch (e) { console.error(e); ui.notifications.error(`Switch failed: ${e.message}`); }
   });
   fieldset.addEventListener('change', async event => {
@@ -147,7 +159,7 @@ export function registerSheetInjection() {
    if (!input) return;
    const key = input.dataset.eweField;
    const val = ['lacerateDie','loudFeet','masteryFirstDie','masterySecondDie'].includes(key) ? Number(input.value) : key === 'combinationEnabled' ? input.value === 'true' : input.value;
-   try { if(key==='combinationEnabled' && val && !item.getFlag(MODULE_ID,'profileBaseProperties')) await item.setFlag(MODULE_ID,'profileBaseProperties',[...item.system.properties].filter(p=>p!=='combination')); await item.setFlag(MODULE_ID,key,val); if(key==='profileActive')await synchronizeMastery(item,{next:val,announce:false}); sheet.render(); }
+   try { keepScroll(sheet,root); if(key==='combinationEnabled' && val && !item.getFlag(MODULE_ID,'profileBaseProperties')) await item.setFlag(MODULE_ID,'profileBaseProperties',[...item.system.properties].filter(p=>p!=='combination')); await item.setFlag(MODULE_ID,key,val); if(key==='profileActive')await synchronizeMastery(item,{next:val,announce:false}); sheet.render(); }
    catch(err) { ui.notifications.error(`Could not save ${key}: ${err.message}`); }
   });
  };

@@ -85,7 +85,7 @@ function decorate(base, properties, flags) {
  });
  const mastery = masteryState(flags);
  let masteryHtml = '';
- if (mastery.enabled) {
+ if (mastery.enabled && (mastery.first || mastery.second)) {
   const one = labelMastery(mastery.first,mastery.firstDie);
   const two = labelMastery(mastery.second,mastery.secondDie);
   const active = mastery.active === 'first' ? one : two;

@@ -2,9 +2,9 @@
   "id": "enhanced-weapons-equipment",
   "title": "Enhanced Weapons, Equipment & Rules",
   "description": "Enhanced weapon properties and mastery, optional equip-aware AC effects, and configurable initiative rerolls for Foundry V14 and dnd5e V6.",
-  "version": "0.1.10",
+  "version": "0.1.10.1",
   "manifest": "https://raw.githubusercontent.com/Raizario/enhanced-weapons-equipment/main/module.json",
-  "download": "https://github.com/Raizario/enhanced-weapons-equipment/releases/download/v0.1.10/enhanced-weapons-equipment.zip",
+  "download": "https://github.com/Raizario/enhanced-weapons-equipment/releases/download/v0.1.10.1/enhanced-weapons-equipment.zip",
   "compatibility": {
     "minimum": "14",
     "verified": "14"
