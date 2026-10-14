@@ -46,10 +46,15 @@ export async function synchronizeMastery(item, { announce=false, next=null }={})
      const selectedDie = chosen === 'second' ? state.secondDie : state.firstDie;
      const from = prior ? labelMastery(previousKey,previousDie) : 'No active mastery';
      const to = state.enabled ? labelMastery(key,selectedDie) : 'No active mastery';
-     const escape = foundry.utils.escapeHTML ?? (x=>String(x).replaceAll('<','&lt;'));
-     const speed = combination ? (flags.combinationSpeed ?? 'Standard') : 'Bonus Action';
+     const escape = value => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+     const actorName = escape(item.actor.name || 'The wielder');
+     const fromName = escape(from);
+     const toName = escape(to);
+     const narrative = combination
+       ? `<p><em>${actorName} shifts ${escape(item.name)} into a new fighting form, leaving <strong>${fromName}</strong> behind and assuming <strong>${toName}</strong>!</em></p>`
+       : `<p><em>${actorName} fluidly shifts mastery stance, relinquishing <strong>${fromName}</strong> and embracing <strong>${toName}</strong>!</em></p>`;
      await ChatMessage.create({ speaker:ChatMessage.getSpeaker({actor:item.actor}),
-       content:`<p><strong>${escape(item.name)} — ${combination ? 'Profile' : 'Mastery'} Switch</strong></p><p>${escape(from)} → <strong>${escape(to)}</strong> (${escape(speed)})</p>` });
+       content:`<div class="ewe-mastery-announcement">${narrative}</div>` });
    }
  } finally { switching.delete(item.uuid); }
 }

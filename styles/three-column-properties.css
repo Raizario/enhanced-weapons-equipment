@@ -1,0 +1,13 @@
+/* v0.1.7.1 — weapon-property checkbox list: three columns. */
+.ewe-three-column-properties {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.3rem 0.45rem !important;
+  align-items: start;
+}
+.ewe-three-column-properties > * { min-width: 0 !important; }
+.ewe-three-column-properties label,
+.ewe-three-column-properties .checkbox {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

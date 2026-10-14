@@ -2,9 +2,9 @@
   "id": "enhanced-weapons-equipment",
   "title": "Enhanced Weapons, Equipment & Rules",
   "description": "Adds the Enhanced Weapons, Equipment & Rules homebrew weapon properties, Lacerate automation, enhanced item bonus damage, and spellcasting foci to the dnd5e system.",
-  "version": "0.1.6",
+  "version": "0.1.7.1",
   "manifest": "https://raw.githubusercontent.com/Raizario/enhanced-weapons-equipment/main/module.json",
-  "download": "https://github.com/Raizario/enhanced-weapons-equipment/releases/download/v0.1.6/enhanced-weapons-equipment.zip",
+  "download": "https://github.com/Raizario/enhanced-weapons-equipment/releases/download/v0.1.7.1/enhanced-weapons-equipment.zip",
   "compatibility": {
     "minimum": "14",
     "verified": "14"
@@ -31,7 +31,9 @@
       "path": "lang/en.json"
     }
   ],
-  "styles": [],
+  "styles": [
+    "styles/three-column-properties.css"
+  ],
   "packs": [],
   "flags": {},
   "authors": [

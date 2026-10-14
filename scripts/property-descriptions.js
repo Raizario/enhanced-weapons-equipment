@@ -66,7 +66,7 @@ export function stripGeneratedSections(html) {
    const looksGenerated = lines.length > 0 && lines.every(li => {
      const leading = li.querySelector('strong,b')?.textContent?.trim() ?? '';
      const key = leading.replace(/\s*\([^)]*\)/g,'').replace(/[.:]$/,'').trim().toLowerCase();
-     return known.has(key);
+     return known.has(key) || (key.startsWith('ewe.property.') && known.has(key.slice('ewe.property.'.length)));
    });
    if (looksGenerated) { next.remove(); heading.remove(); }
  }

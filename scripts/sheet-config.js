@@ -2,12 +2,41 @@ import { MODULE_ID } from './constants.js';
 import { MASTERY_OPTIONS, masteryState } from './mastery.js';
 import { synchronizeMastery } from './mastery-runtime.js';
 
+/** Locate the existing dnd5e weapon-property checkbox grid without rewriting its inputs. */
+function applyThreeColumnPropertyLayout(root) {
+ const checkboxes = [...root.querySelectorAll('input[type="checkbox"]')]
+  .filter(el => (el.name || '').includes('properties'));
+ if (checkboxes.length < 9) return;
+ // The smallest element shared by the property checkboxes is the grid container
+ // on the official dnd5e sheet. Do not modify unrelated sheet fields.
+ const parents = [];
+ for (let node = checkboxes[0].parentElement; node && node !== root; node = node.parentElement) {
+  if (checkboxes.every(c => node.contains(c))) { parents.push(node); break; }
+ }
+ let group = parents[0];
+ if (!group) return;
+ // A checkbox's own label may be wrapped; if the shared node has a single
+ // inner grid carrying all checkboxes, use that inner grid instead.
+ while (group.children.length === 1 && group.firstElementChild?.querySelectorAll('input[type="checkbox"]').length >= 9) {
+  group = group.firstElementChild;
+ }
+ // Never turn the entire Details tab into a grid.
+ if (group.matches('.tab, .sheet-body, form, .window-content, fieldset')) {
+  const child = [...group.children].find(el => el.querySelectorAll('input[type="checkbox"]').length >= 9);
+  if (!child) return;
+  group = child;
+ }
+ group.classList.add('ewe-three-column-properties');
+}
+
 export function registerSheetInjection() {
  const render = (sheet, html) => {
   const item = sheet.item ?? sheet.document;
   if (item?.type !== 'weapon') return;
   const root = html instanceof HTMLElement ? html : html?.[0];
-  if (!root || root.querySelector('.ewe-config')) return;
+  if (!root) return;
+  applyThreeColumnPropertyLayout(root);
+  if (root.querySelector('.ewe-config')) return;
   const props = item.system.properties;
   const has = key => props instanceof Set ? props.has(key) : Array.isArray(props) && props.includes(key);
   const state = masteryState(item.flags?.[MODULE_ID]);

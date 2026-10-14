@@ -116,7 +116,7 @@ function registerWeaponProperties() {
 
     CONFIG.DND5E.itemProperties[key] = {
       label: game.i18n.localize(`EWE.Property.${key}`),
-      abbreviation: game.i18n.localize(`EWE.Property.${key}Abbr`) ?? key,
+      abbreviation: key.slice(0, 4).toUpperCase(),
       isPhysical: true
     };
 
