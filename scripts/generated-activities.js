@@ -1,7 +1,7 @@
 /** dnd5e 6.x utility activities for Enhanced Weapons. No Midi-QOL required. */
 import { MODULE_ID } from './constants.js';
 import { masteryState } from './mastery.js';
-import { synchronizeMastery, permanentProperties } from './mastery-runtime.js';
+import { synchronizeMastery, permanentProperties, switchIndependentMastery } from './mastery-runtime.js';
 
 const inflight = new Set();
 const MANEUVERS = {
@@ -19,21 +19,22 @@ function entries(item) {
   const set = permanentProperties(item);
   // Both possible Masteries contribute maneuver choices; active stance only changes availability at use time.
   const mastery = masteryState(item.flags?.[MODULE_ID] ?? {});
+  const combo=!!item.flags?.[MODULE_ID]?.combinationEnabled || set.has('combination');
   if (mastery.enabled) {
     if (mastery.first) set.add(mastery.first);
     if (mastery.second) set.add(mastery.second);
   }
   const list = [];
-  if (set.has('combination') || (mastery.enabled && mastery.first && mastery.second && mastery.first !== mastery.second)) {
+  if (combo || (mastery.mode==='yes' && mastery.first && mastery.second && mastery.first !== mastery.second)) {
     const speed = String(item.flags?.[MODULE_ID]?.combinationSpeed || 'standard').toLowerCase();
-    const combo = set.has('combination');
     // Fast profile switching is a free object interaction or Bonus Action: represented by Bonus Action for usability.
     const type = combo && speed === 'slow' ? 'action' : 'bonus';
     list.push(['mastery-switch', combo ? 'Change Weapon Profile' : 'Switch Mastery Stance', type,
       combo ? `Transform into the other weapon profile (${speed} Combination speed). This activity changes the active Mastery; complete weapon profile damage changes are not automated yet.` :
         'Change your active Weapon Mastery to the other configured Mastery Property.']);
   }
-  if (set.has('momentum')) list.push(['maneuver-momentum','Momentum — Charging Strike','action','Attack after moving 20 feet straight toward your target; replace base weapon damage dice with the configured Momentum dice. Once per turn.']);
+  if (combo && mastery.mode === 'yes' && mastery.first && mastery.second && mastery.first!==mastery.second) list.push(['mastery-stance','Switch Mastery Stance','bonus','Change the active Weapon Mastery independently of the weapon profile.']);
+  if (set.has('momentum')) list.push(['maneuver-momentum','Momentum — Charging Strike','action','Attack after moving 20 feet straight toward your target; replace base weapon damage dice with Momentum dice. Once per turn.']);
   if (set.has('flexible')) list.push(['maneuver-flexible','Flexible — Follow-up Strike','bonus','After taking the Attack action with this weapon, make the bonus attack using its configured Flexible damage.']);
   for (const [key, [name, activation, text]] of Object.entries(MANEUVERS)) {
     if (set.has(key)) list.push([`maneuver-${key}`, name, activation, text]);
@@ -58,6 +59,12 @@ export async function synchronizeGeneratedActivities(item) {
     }
     for (const [kind, name, activation, explanation] of wanted) {
       const current = existing.find(a => a.flags[MODULE_ID].generatedKind === kind);
+      const attackKind=['maneuver-momentum','maneuver-flexible'].includes(kind);
+      const rule=kind==='maneuver-momentum'?'momentum':'flexible';
+      const setting=item.getFlag(MODULE_ID,`${rule}Attack`)??{number:rule==='momentum'?2:1,die:rule==='momentum'?'d6':'d4',bonus:'',type:rule==='momentum'?'slashing':'bludgeoning'};
+      const damagePart=setting.formulaMode && setting.formula ?
+         {custom:{enabled:true,formula:String(setting.formula)},types:{[setting.type||'slashing']:true}} :
+         {number:Number(setting.number)||1,denomination:setting.die||'d6',bonus:String(setting.bonus||''),types:{[setting.type||'slashing']:true}};
       const data = {
         name,
         type: 'utility',
@@ -65,12 +72,18 @@ export async function synchronizeGeneratedActivities(item) {
         description: { chatFlavor: explanation },
         flags: { [MODULE_ID]: { generatedKind: kind } }
       };
-      if (current) {
+      if(attackKind){
+        data.attack={type:{value:item.system.attackType||'melee',classification:'weapon'}};
+        data.damage={includeBase:false,parts:[damagePart]};
+      }
+      if (current && attackKind && current.type!=='attack') { await current.delete(); await item.createActivity('attack',data,{renderSheet:false}); }
+      else if (current) {
+        if (attackKind) await current.update({'damage.includeBase':false,'damage.parts':[damagePart]});
         if (current.name !== name || current.activation?.type !== activation) {
           await current.update({name, 'activation.type': activation, 'activation.override': true});
         }
       } else {
-        await item.createActivity('utility', data, {renderSheet:false});
+        await item.createActivity(attackKind?'attack':'utility', data, {renderSheet:false});
       }
     }
   } catch (error) {
@@ -81,15 +94,17 @@ export async function synchronizeGeneratedActivities(item) {
 export function registerGeneratedActivities() {
   Hooks.on('dnd5e.postUseActivity', (activity) => {
     const kind = activity?.flags?.[MODULE_ID]?.generatedKind;
-    if (kind !== 'mastery-switch') return;
+    if (!['mastery-switch','mastery-stance'].includes(kind)) return;
     const item = activity.item;
     // The activity may be an execution clone; resolve to the authoritative embedded item.
     const original = item?.actor?.items?.get(item.id) ?? item;
     if (!original?.actor) return;
     const flags = original.flags?.[MODULE_ID] ?? {};
     const state = masteryState(flags);
-    const next = state.active === 'first' ? 'second' : 'first';
-    void synchronizeMastery(original, {next, announce:true}).catch(error => console.error(`${MODULE_ID} | Mastery activity`, error));
+    const combo=!!flags.combinationEnabled;
+    const next = kind==='mastery-stance' ? (state.active==='first'?'second':'first') : combo ? ((flags.profileActive||'first')==='first'?'second':'first') : (state.active==='first'?'second':'first');
+    if(kind==='mastery-stance') void switchIndependentMastery(original).catch(error=>console.error(`${MODULE_ID} | Stance activity`,error));
+    else void synchronizeMastery(original, {next, announce:true}).catch(error => console.error(`${MODULE_ID} | Mastery activity`, error));
   });
   Hooks.on('updateItem', (item, changes) => {
     if (item.type !== 'weapon' || inflight.has(item.uuid)) return;
