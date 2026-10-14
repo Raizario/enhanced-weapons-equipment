@@ -15,3 +15,13 @@ Release tag: `v0.1.7.1`; release attachment filename: `enhanced-weapons-equipmen
 ## v0.1.7.1 patch
 
 Restores a three-column weapon-property checkbox layout on dnd5e v6 item sheets. No changes to mastery logic, translation, damage, or chat announcements.
+
+
+## v0.1.8 — First automation pass (experimental)
+
+New **world settings** under Configure Settings → Module Settings:
+
+- **Reroll Initiative Each Round** (default OFF). The active GM rerolls initiative for non-defeated combatants when round 2 or later starts. Uses Foundry's normal combat initiative rolls; only the active GM rolls. Re-sorts combatants; conflicts are possible with other initiative modules.
+- **Automate Defensive / Parry AC** (default OFF). An equipped weapon with Defensive or Parry gives a +1 AC Active Effect on its actor. Multiple matching weapons do not stack. Removing the weapon or disabling the setting removes the module-managed effect. Does not check the Parry offhand finesse restriction or Defensive tower shield restriction: GM/players must manage eligibility by unequipping.
+
+**Safety:** Legacy Lacerate automatic damage is NOT enabled; its setting defaults OFF for new worlds. This is a test build, please back up world data before installation. No standalone font assets are included. No new Activities or compendium packs were created in this release.

@@ -15,6 +15,8 @@
  */
 
 import { MODULE_ID } from "./constants.js";
+import { registerInitiativeReroll } from "./combat-initiative.js";
+import { registerAcAutomation } from "./ac-effects.js";
 import { CONDITIONS, ALWAYS_TRUE } from "./damage-properties.js";
 import { applyLacerate, onCombatTurnStart } from "./lacerate.js";
 import { registerSettings, playLoudSound } from "./settings.js";
@@ -133,6 +135,8 @@ Hooks.once("init", () => {
   registerSheetInjection();
   registerMasteryRuntime();
   registerPropertyDescriptions();
+  registerInitiativeReroll();
+  registerAcAutomation();
 });
 
 Hooks.once("ready", () => {
@@ -176,38 +180,6 @@ Hooks.on("dnd5e.preUseActivity", (activity, usageConfig, dialogConfig, messageCo
 /** Lacerate's start-of-turn auto-roll. */
 // Hooks.on("combatTurn", (combat) => onCombatTurnStart(combat)); // pending V14 verification
 // Hooks.on("combatStart", (combat) => onCombatTurnStart(combat)); // pending V14 verification
-
-/**
- * Defensive / Parry — static AC bonus via Active Effect, kept in sync with
- * equip state. Guard Mastery (if the actor has that feat) upgrades +1 to +2;
- * that check is left as a TODO here since it depends on how the feat is
- * represented once the compendium is built.
- */
-Hooks.on("dnd5e.equipItem", (item, equipped) => {
-  const props = item.system?.properties;
-  if (!props || (!props.has("defensive") && !props.has("parry"))) return;
-
-  const actor = item.actor;
-  if (!actor) return;
-
-  const existing = actor.effects.find(e => e.getFlag(MODULE_ID, "defensiveParryBonus"));
-  if (!equipped) {
-    if (existing) existing.delete();
-    return;
-  }
-  if (existing) return; // parry's "only once" stacking rule — don't duplicate
-
-  actor.createEmbeddedDocuments("ActiveEffect", [{
-    name: `${item.name} — AC Bonus`,
-    icon: item.img,
-    flags: { [MODULE_ID]: { defensiveParryBonus: true } },
-    changes: [{
-      key: "system.attributes.ac.bonus",
-      mode: CONST.ACTIVE_EFFECT_MODES.ADD,
-      value: "1"
-    }]
-  }]);
-});
 
 /**
  * Deflect, Combination, Flexible, and Momentum are NOT automated here.
