@@ -1,24 +1,13 @@
-# Enhanced Weapons, Equipment & Rules — v0.1.9 (Activity Preview)
+# Enhanced Weapons — v0.1.9.1 (Foundry 14 / dnd5e 6)
 
-**Foundry V14 / dnd5e V6 test build.** Back up your world before testing.
+**Patch to v0.1.9:** fixes Combination/Weapon Mastery property ownership and distinct transformation chat announcements. Preserves initiative history, separate Defensive/Parry AC effects, three-column property layout and Farshot.
 
-## Included from the v0.1.8.1 corrections
+- Preserves permanent weapon properties when a Mastery changes.
+- Combination profile switching keeps its own Activity and distinct text, independent of standard mastery stance changes.
+- Rebuilds generated Activities from saved permanent properties rather than momentary active checkboxes.
+- Adds **Momentum — Charging Strike** and **Flexible — Follow-up Strike** rule-prompt Utility Activities. These are intentionally **not yet attack-roll Activities**; they do not change or roll weapon damage. This is safer until attack damage formulas and costs can be validated in Foundry.
+- Brutal critical-hit damage automation remains pending rather than risking incorrect critical damage or overwriting existing custom critical modifiers.
 
-- Defensive and Parry AC bonuses can stack; managed bonuses are removed when the weapon is unequipped.
-- Initiative rolls are saved per Combat round and restored on previous/next navigation; the first round is rolled upon combat start.
-- The established three-column property UI, property descriptions, Mastery controls, and Farshot range behavior remain.
+**Important:** Back up your world and test on a duplicated weapon. Existing weapons previously damaged by the bad switch may require their manually selected properties restored once. The system cannot infer every erased custom property. For new weapons, changing Mastery should not remove permanent properties.
 
-## New in actual v0.1.9
-
-- Creates a **Utility Activity** on weapons with two distinct Mastery choices: **Switch Mastery Stance** (Bonus Action) or **Change Weapon Profile** (Combination speed: Slow uses Action; other speeds use Bonus Action).
-- The dnd5e `postUseActivity` hook changes the active mastery and posts the italic actor-named chat announcement once an Activity is used.
-- Generates descriptive Utility Activities on applicable weapons for **Brace, Deflect, Brawler, Disarm, Drag, Trip and Flourish**. These are **prompts only**: they do not yet roll opposed checks, apply conditions, or change damage.
-- Activity creation is automatically attempted for world items and actor-owned items; generated entries carry module flags to prevent replacing manually authored Activities.
-
-## Important limits
-
-- Generated Activities use dnd5e's API but have **not been tested in a live Foundry V14 game**. Check creation, activation timing, and one chat announcement per use.
-- Combination profile switching changes active mastery but **does not yet swap the physical weapon's damage, range, or full profile data**.
-- Fast Combination supports object interaction or Bonus Action in the PDF; this first Activity presents the Bonus Action route.
-- Disarm / Drag / Trip are written as Action Activities to expose their rules, but in play they **replace one attack within the Attack action**, not necessarily your entire Action. This distinction is not yet system-automated.
-- Initiative and equipped AC automations must be enabled in Module Settings.
+**Test:** Combination with Mastery enabled: switch profiles repeatedly, verify Combination remains checked and Change Weapon Profile persists, and check the transformation chat text. Switch standard Mastery on a non-Combination weapon and verify its own chat text. Reopen, reload and repeat. Ensure initiative/AC behavior remains unchanged.

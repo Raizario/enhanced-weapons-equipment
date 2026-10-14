@@ -1,69 +1,81 @@
 import { MODULE_ID } from './constants.js';
 import { masteryState, labelMastery } from './mastery.js';
 
-const getProps = item => item.system.properties instanceof Set ? [...item.system.properties] : [...(item.system.properties ?? [])];
+const busy = new Set();
+const propertyArray = item => [...(item.system.properties ?? [])];
 const round5 = n => Math.ceil(n / 5) * 5;
-const controlled = new Set(['defensive','parry']);
-const switching = new Set();
-/** Switches the selected mastery, persisting the effective property selection and range. */
+const escapeHtml = value => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o ?? {}, k);
+
+export function permanentProperties(item) {
+ const f = item.flags?.[MODULE_ID] ?? {};
+ const current = new Set(propertyArray(item));
+ const base = new Set(Array.isArray(f.runtimeBaseProperties) ? f.runtimeBaseProperties : current);
+ const state = masteryState(f);
+ // Recover Combination when an earlier release stripped it; only when the saved speed explicitly exists.
+ if (f.combinationSpeed && !current.has('combination')) base.add('combination');
+ const old = f.runtimeActive === 'second' ? state.second : state.first;
+ // Repair old 0.1.9 data, where a temporary mastery could be cached as permanent.
+ if (old && !f.runtimeBaseProperties?.includes(old) && current.has(old)) current.delete(old);
+ // Add any properties changed manually since last sync, but don't import the temporary active mastery.
+ const previousExpected = new Set(base);
+ if (f.runtimeActive && old) previousExpected.add(old);
+ for (const p of current) if (!previousExpected.has(p)) base.add(p);
+ for (const p of previousExpected) if (!current.has(p) && p !== old && !(p === 'combination' && f.combinationSpeed)) base.delete(p);
+ return base;
+}
+
+/** Stable switch: never allows a selected mastery to replace permanent properties. */
 export async function synchronizeMastery(item, { announce=false, next=null }={}) {
- if (item?.type !== 'weapon' || switching.has(item.uuid)) return;
+ if (item?.type !== 'weapon' || busy.has(item.uuid)) return;
  const flags = item.flags?.[MODULE_ID] ?? {};
  const state = masteryState(flags);
- const props = new Set(getProps(item));
- const combination = props.has('combination');
  const chosen = next ?? state.active;
  if (!['first','second'].includes(chosen)) return;
- const prior = flags.runtimeActive ?? '';
- const originalProps = flags.runtimeBaseProperties;
- const base = Array.isArray(originalProps) ? new Set(originalProps) : new Set(getProps(item));
- // Runtime mastery properties must never become permanent baseline properties.
- const key = chosen === 'first' ? state.first : state.second;
+ const current = new Set(propertyArray(item));
+ const base = permanentProperties(item);
+ const combo = base.has('combination');
+ const prior = flags.runtimeActive || state.active;
+ const key = state.enabled ? (chosen === 'second' ? state.second : state.first) : '';
  const effective = new Set(base);
- if (state.enabled && key) effective.add(key);
- const range = item.system.range ?? {};
- const baselineRange = flags.runtimeBaseRange ?? {value:range.value,long:range.long};
- let ranged = { ...baselineRange };
- if (state.enabled && key === 'farshot') {
-   for (const prop of ['value','long']) {
-     const value = Number(baselineRange[prop]);
-     if (Number.isFinite(value) && value > 0) ranged[prop] = round5(value * 1.5);
-   }
+ if (key) effective.add(key);
+ const originalRange = flags.runtimeBaseRange ?? {value:item.system.range?.value,long:item.system.range?.long};
+ const range = { ...originalRange };
+ if (key === 'farshot') for (const p of ['value','long']) {
+   const v = Number(originalRange[p]);
+   if (Number.isFinite(v) && v > 0) range[p] = round5(v * 1.5);
  }
- const update = { [`flags.${MODULE_ID}.runtimeActive`]:state.enabled ? chosen : '',
-                  [`flags.${MODULE_ID}.runtimeBaseProperties`]:[...base],
-                  [`flags.${MODULE_ID}.runtimeBaseRange`]:baselineRange };
- if (state.active !== chosen) update[`flags.${MODULE_ID}.masteryActive`] = chosen;
- if (JSON.stringify([...props].sort()) !== JSON.stringify([...effective].sort())) update['system.properties']=[...effective];
- for (const prop of ['value','long']) if (ranged[prop] !== undefined && String(range[prop] ?? '') !== String(ranged[prop] ?? '')) update[`system.range.${prop}`]=ranged[prop];
- const changed = prior !== (state.enabled ? chosen : '');
- switching.add(item.uuid);
+ const update = {
+   [`flags.${MODULE_ID}.runtimeBaseProperties`]:[...base],
+   [`flags.${MODULE_ID}.runtimeActive`]: state.enabled ? chosen : '',
+   [`flags.${MODULE_ID}.runtimeBaseRange`]:originalRange
+ };
+ if (chosen !== state.active) update[`flags.${MODULE_ID}.masteryActive`] = chosen;
+ if (JSON.stringify([...current].sort()) !== JSON.stringify([...effective].sort())) update['system.properties']=[...effective];
+ for (const p of ['value','long']) if (range[p] !== undefined && String(item.system.range?.[p] ?? '') !== String(range[p] ?? '')) update[`system.range.${p}`]=range[p];
+ busy.add(item.uuid);
  try {
-   if (Object.keys(update).some(k=>k !== `flags.${MODULE_ID}.runtimeActive` && k !== `flags.${MODULE_ID}.runtimeBaseProperties` && k !== `flags.${MODULE_ID}.runtimeBaseRange`) || !flags.runtimeBaseProperties) await item.update(update);
-   if (announce && changed && item.actor) {
-     const previousKey = prior === 'second' ? state.second : state.first;
-     const previousDie = prior === 'second' ? state.secondDie : state.firstDie;
-     const selectedDie = chosen === 'second' ? state.secondDie : state.firstDie;
-     const from = prior ? labelMastery(previousKey,previousDie) : 'No active mastery';
-     const to = state.enabled ? labelMastery(key,selectedDie) : 'No active mastery';
-     const escape = value => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-     const actorName = escape(item.actor.name || 'The wielder');
-     const fromName = escape(from);
-     const toName = escape(to);
-     const narrative = combination
-       ? `<p><em>${actorName} shifts ${escape(item.name)} into a new fighting form, leaving <strong>${fromName}</strong> behind and assuming <strong>${toName}</strong>!</em></p>`
-       : `<p><em>${actorName} fluidly shifts mastery stance, relinquishing <strong>${fromName}</strong> and embracing <strong>${toName}</strong>!</em></p>`;
-     await ChatMessage.create({ speaker:ChatMessage.getSpeaker({actor:item.actor}),
-       content:`<div class="ewe-mastery-announcement">${narrative}</div>` });
+   await item.update(update);
+   if (announce && prior !== chosen && item.actor) {
+     const fromKey = prior === 'second' ? state.second : state.first;
+     const fromDie = prior === 'second' ? state.secondDie : state.firstDie;
+     const toDie = chosen === 'second' ? state.secondDie : state.firstDie;
+     const actor = escapeHtml(item.actor.name || 'The wielder');
+     const from = escapeHtml(labelMastery(fromKey,fromDie));
+     const to = escapeHtml(labelMastery(key,toDie));
+     const text = combo
+       ? `<em>${actor} transforms <strong>${escapeHtml(item.name)}</strong>, shifting from its <strong>${prior === 'first'?'primary':'secondary'}</strong> configuration to its <strong>${chosen === 'first'?'primary':'secondary'}</strong> form!</em>`
+       : `<em>${actor} fluidly shifts mastery stance, relinquishing <strong>${from}</strong> and embracing <strong>${to}</strong>!</em>`;
+     await ChatMessage.create({speaker: ChatMessage.getSpeaker({actor:item.actor}),content:`<p class="ewe-stance-message">${text}</p>`});
    }
- } finally { switching.delete(item.uuid); }
+ } finally { busy.delete(item.uuid); }
 }
-export function registerMasteryRuntime(){
- Hooks.on('updateItem', (item, change) => {
-   if (item.type !== 'weapon' || switching.has(item.uuid)) return;
-   const flagsChange = foundry.utils.getProperty(change,`flags.${MODULE_ID}`);
-   if (!flagsChange || !['masteryFirst','masterySecond','masteryFirstDie','masterySecondDie','masteryEnabled','masteryActive'].some(k=>Object.hasOwn(flagsChange,k))) return;
-   // Defer until the sheet update is finished; avoid nested updates in the hook.
-   void synchronizeMastery(item).catch(e=>console.error(`${MODULE_ID} | mastery update`,e));
+
+export function registerMasteryRuntime() {
+ Hooks.on('updateItem',(item, changes) => {
+   if (item.type !== 'weapon' || busy.has(item.uuid)) return;
+   const f = foundry.utils.getProperty(changes,`flags.${MODULE_ID}`);
+   const relevant = !!f && ['masteryEnabled','masteryFirst','masterySecond','masteryFirstDie','masterySecondDie','masteryActive'].some(k => own(f,k));
+   if (relevant) void synchronizeMastery(item).catch(e=>console.error(`${MODULE_ID} | sync`,e));
  });
 }

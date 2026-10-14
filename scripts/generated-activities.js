@@ -1,7 +1,7 @@
 /** dnd5e 6.x utility activities for Enhanced Weapons. No Midi-QOL required. */
 import { MODULE_ID } from './constants.js';
 import { masteryState } from './mastery.js';
-import { synchronizeMastery } from './mastery-runtime.js';
+import { synchronizeMastery, permanentProperties } from './mastery-runtime.js';
 
 const inflight = new Set();
 const MANEUVERS = {
@@ -16,14 +16,15 @@ const MANEUVERS = {
 
 function entries(item) {
   const props = item.system?.properties;
-  const set = new Set(props instanceof Set ? props : (props ?? []));
+  const set = permanentProperties(item);
+  // Both possible Masteries contribute maneuver choices; active stance only changes availability at use time.
   const mastery = masteryState(item.flags?.[MODULE_ID] ?? {});
   if (mastery.enabled) {
     if (mastery.first) set.add(mastery.first);
     if (mastery.second) set.add(mastery.second);
   }
   const list = [];
-  if (mastery.enabled && mastery.first && mastery.second && mastery.first !== mastery.second) {
+  if (set.has('combination') || (mastery.enabled && mastery.first && mastery.second && mastery.first !== mastery.second)) {
     const speed = String(item.flags?.[MODULE_ID]?.combinationSpeed || 'standard').toLowerCase();
     const combo = set.has('combination');
     // Fast profile switching is a free object interaction or Bonus Action: represented by Bonus Action for usability.
@@ -32,6 +33,8 @@ function entries(item) {
       combo ? `Transform into the other weapon profile (${speed} Combination speed). This activity changes the active Mastery; complete weapon profile damage changes are not automated yet.` :
         'Change your active Weapon Mastery to the other configured Mastery Property.']);
   }
+  if (set.has('momentum')) list.push(['maneuver-momentum','Momentum — Charging Strike','action','Attack after moving 20 feet straight toward your target; replace base weapon damage dice with the configured Momentum dice. Once per turn.']);
+  if (set.has('flexible')) list.push(['maneuver-flexible','Flexible — Follow-up Strike','bonus','After taking the Attack action with this weapon, make the bonus attack using its configured Flexible damage.']);
   for (const [key, [name, activation, text]] of Object.entries(MANEUVERS)) {
     if (set.has(key)) list.push([`maneuver-${key}`, name, activation, text]);
   }
@@ -51,7 +54,7 @@ export async function synchronizeGeneratedActivities(item) {
     const keys = new Set(wanted.map(e => e[0]));
     for (const activity of existing) {
       const kind = activity.flags[MODULE_ID].generatedKind;
-      if (!keys.has(kind)) await activity.delete();
+      if (!keys.has(kind) && kind !== 'mastery-switch' && !(kind.startsWith('maneuver-') && !item.flags?.[MODULE_ID]?.runtimeBaseProperties)) await activity.delete();
     }
     for (const [kind, name, activation, explanation] of wanted) {
       const current = existing.find(a => a.flags[MODULE_ID].generatedKind === kind);
