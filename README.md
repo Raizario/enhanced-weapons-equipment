@@ -1,27 +1,24 @@
-# Enhanced Weapons, Equipment & Rules — v0.1.7.1 test build
+# Enhanced Weapons, Equipment & Rules — v0.1.9 (Activity Preview)
 
-Foundry V14 / dnd5e V6.
+**Foundry V14 / dnd5e V6 test build.** Back up your world before testing.
 
-## Changes
-- Repair English localization: property names, mastery selectors, generated descriptions, and chat messages now resolve proper labels instead of `EWE.Property...`.
-- Update Mastery-switch chat messages to use the actor name and an italic, narrative announcement.
-- Retain Farshot range scaling (1.5×, rounded upward to 5 feet), property toggles and reversible mastery switching.
-- Improved legacy generated-description recognition for untranslated property-key headings.
+## Included from the v0.1.8.1 corrections
 
-**Not yet live-tested in Foundry.** Test on backup world and duplicate items. Affects new/generated sections when items are next updated; manual description text isn't globally rewritten. Combat Activities, effects and true combination profile transformations are not implemented by this build.
+- Defensive and Parry AC bonuses can stack; managed bonuses are removed when the weapon is unequipped.
+- Initiative rolls are saved per Combat round and restored on previous/next navigation; the first round is rolled upon combat start.
+- The established three-column property UI, property descriptions, Mastery controls, and Farshot range behavior remain.
 
-Release tag: `v0.1.7.1`; release attachment filename: `enhanced-weapons-equipment.zip`.
+## New in actual v0.1.9
 
-## v0.1.7.1 patch
+- Creates a **Utility Activity** on weapons with two distinct Mastery choices: **Switch Mastery Stance** (Bonus Action) or **Change Weapon Profile** (Combination speed: Slow uses Action; other speeds use Bonus Action).
+- The dnd5e `postUseActivity` hook changes the active mastery and posts the italic actor-named chat announcement once an Activity is used.
+- Generates descriptive Utility Activities on applicable weapons for **Brace, Deflect, Brawler, Disarm, Drag, Trip and Flourish**. These are **prompts only**: they do not yet roll opposed checks, apply conditions, or change damage.
+- Activity creation is automatically attempted for world items and actor-owned items; generated entries carry module flags to prevent replacing manually authored Activities.
 
-Restores a three-column weapon-property checkbox layout on dnd5e v6 item sheets. No changes to mastery logic, translation, damage, or chat announcements.
+## Important limits
 
-
-## v0.1.8 — First automation pass (experimental)
-
-New **world settings** under Configure Settings → Module Settings:
-
-- **Reroll Initiative Each Round** (default OFF). The active GM rerolls initiative for non-defeated combatants when round 2 or later starts. Uses Foundry's normal combat initiative rolls; only the active GM rolls. Re-sorts combatants; conflicts are possible with other initiative modules.
-- **Automate Defensive / Parry AC** (default OFF). An equipped weapon with Defensive or Parry gives a +1 AC Active Effect on its actor. Multiple matching weapons do not stack. Removing the weapon or disabling the setting removes the module-managed effect. Does not check the Parry offhand finesse restriction or Defensive tower shield restriction: GM/players must manage eligibility by unequipping.
-
-**Safety:** Legacy Lacerate automatic damage is NOT enabled; its setting defaults OFF for new worlds. This is a test build, please back up world data before installation. No standalone font assets are included. No new Activities or compendium packs were created in this release.
+- Generated Activities use dnd5e's API but have **not been tested in a live Foundry V14 game**. Check creation, activation timing, and one chat announcement per use.
+- Combination profile switching changes active mastery but **does not yet swap the physical weapon's damage, range, or full profile data**.
+- Fast Combination supports object interaction or Bonus Action in the PDF; this first Activity presents the Bonus Action route.
+- Disarm / Drag / Trip are written as Action Activities to expose their rules, but in play they **replace one attack within the Attack action**, not necessarily your entire Action. This distinction is not yet system-automated.
+- Initiative and equipped AC automations must be enabled in Module Settings.

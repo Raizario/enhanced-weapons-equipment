@@ -17,6 +17,7 @@
 import { MODULE_ID } from "./constants.js";
 import { registerInitiativeReroll } from "./combat-initiative.js";
 import { registerAcAutomation } from "./ac-effects.js";
+import { registerGeneratedActivities } from "./generated-activities.js";
 import { CONDITIONS, ALWAYS_TRUE } from "./damage-properties.js";
 import { applyLacerate, onCombatTurnStart } from "./lacerate.js";
 import { registerSettings, playLoudSound } from "./settings.js";
@@ -137,6 +138,7 @@ Hooks.once("init", () => {
   registerPropertyDescriptions();
   registerInitiativeReroll();
   registerAcAutomation();
+  registerGeneratedActivities();
 });
 
 Hooks.once("ready", () => {

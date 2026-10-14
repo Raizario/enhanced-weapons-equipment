@@ -4,12 +4,12 @@ import { MODULE_ID } from "./constants.js";
 export function registerSettings() {
   game.settings.register(MODULE_ID,"rerollInitiativeEachRound",{
     name:"Reroll Initiative Each Round",
-    hint:"GM-only: automatically rerolls all non-defeated combatants when each new round begins (starting round 2). Changes the combat turn order. Test without other initiative automation modules.",
+    hint:"GM-only: rolls initiative when combat begins and on each new round; revisiting an earlier round restores its saved rolls instead of rolling again.",
     scope:"world",config:true,type:Boolean,default:false
   });
   game.settings.register(MODULE_ID,"automateDefensiveParryAC",{
     name:"Automate Defensive / Parry AC",
-    hint:"Grants a single +1 AC Active Effect while at least one equipped weapon has Defensive or Parry, including active Masteries. These do not stack. Parry's offhand Finesse requirement is NOT automatically checked; unequip the weapon when ineligible.",
+    hint:"Grants +1 AC for each equipped Defensive property and each equipped Parry property (including active Masteries). These bonuses stack. Parry's offhand Finesse requirement is NOT automatically checked; unequip the weapon when ineligible.",
     scope:"world",config:true,type:Boolean,default:false,
     onChange: () => { if(game.user?.isGM) for(const actor of game.actors) void synchronizeAcBonus(actor); }
   });
