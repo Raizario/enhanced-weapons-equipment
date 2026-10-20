@@ -1,4 +1,6 @@
-# Enhanced Weapons, Equipment & Rules — v0.1.10.1 test build
+> **v0.1.10.2 compatibility patch:** dnd5e system requirement set to 5.3.3 (not yet validated in a running Foundry world). No game logic changed.
+
+# Enhanced Weapons, Equipment & Rules — v0.1.10.2 test build
 
 Target: Foundry VTT v14, dnd5e 6.x. This patch builds on v0.1.10.
 
@@ -17,4 +19,4 @@ Target: Foundry VTT v14, dnd5e 6.x. This patch builds on v0.1.10.
 - Back up your world and test on duplicate weapons before using it in a campaign.
 
 ## Install
-Upload the extracted GitHub source to main. Create release `v0.1.10.1` and attach the module archive as `enhanced-weapons-equipment.zip`. Refresh the Forge's manifest and restart the world.
+Upload the extracted GitHub source to main. Create release `v0.1.10.2` and attach the module archive as `enhanced-weapons-equipment.zip`. Refresh the Forge's manifest and restart the world.
